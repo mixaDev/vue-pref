@@ -26,17 +26,14 @@ export default {
   gameType: ['game', 'without', 'rozp', 'mizer'],
   bribeList: [0,1,2,3,4,5,6,7,8,9,10],
   playerType: ['play', 'vist', 'pas', 'hand'],
-  players: 4,
-  round: {
-    game: {
-      count: 6,
-      type: 'game'
-    },
-    player: [
-      {},
-      {},
-      {},
-      {}
-    ]
-  }
+  roundAdd: {
+    game: '6:game',
+    player: ['', '', '', '']
+  },
+  gameAdd: {
+    name: 'new game',
+    player: ['', '', ''],
+    rounds: []
+  },
+  playerList: [3, 4]
 }

@@ -9,28 +9,32 @@
       <v-list>
         <v-list-tile
           value="true"
-          v-for="(item, i) in game.list"
+          v-for="(item, i) in game.rounds"
           :key="i"
-          @click="setRound(item)"
+          @click="setRound(item, i)"
+          :class="{ active: i ===  round_.active}"
         >
+          <v-list-tile-avatar>
+            {{item.game.split(':')[0]}}
+          </v-list-tile-avatar>
           <v-list-tile-content>
-            <v-list-tile-title v-text="item.game"></v-list-tile-title>
+            <v-list-tile-title v-text="item.game.split(':')[1]"></v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
       </v-list>
-      <v-btn type="submit" @click="setRound(config.round)">Add</v-btn>
-      <form @submit.prevent="addRound" novalidate>
+      <v-btn type="button" @click="setRound(config.roundAdd, roundLen)">Add</v-btn>
+      <form @submit.prevent="addRound" novalidate v-if="round_.show">
         <v-layout row>
           <v-flex xs6>
             <v-select
-              v-bind:items="config.gameList"
+              :items="config.gameList"
               v-model="round_.game.count"
               label="game"
             ></v-select>
           </v-flex>
           <v-flex xs6>
             <v-select
-              v-bind:items="config.gameType"
+              :items="config.gameType"
               v-model="round_.game.type"
               label="type"
             ></v-select>
@@ -45,7 +49,7 @@
             <v-layout row>
               <v-flex xs6>
                 <v-select
-                  v-bind:items="config.bribeList"
+                  :items="config.bribeList"
                   v-model="round_.player[i].count"
                   label="count"
                   required
@@ -53,7 +57,7 @@
               </v-flex>
               <v-flex xs6>
                 <v-select
-                  v-bind:items="config.playerType"
+                  :items="config.playerType"
                   v-model="round_.player[i].type"
                   label="type"
                   required
@@ -90,16 +94,13 @@
     </v-toolbar>
     <main>
       <v-container fluid>
-        <v-layout row>
+        <v-layout row wrap>
           <v-flex xs6
                   v-for="(item, i) in player"
                   :key="i"
           >
             <div>
-              <input type="text"
-                     :value="game.player[i]"
-                     @input="renamePlayer(i, $event.target.value)"
-              >
+              <b>{{game.player[i]}}</b>
             </div>
             <div>{{item.gorka}}</div>
             <div>{{item.pulja}}</div>
@@ -114,7 +115,6 @@
       </v-container>
     </main>
     <v-navigation-drawer
-      temporary
       right
       v-model="rightDrawer"
     >
@@ -122,11 +122,53 @@
         <v-list-tile
           v-for="(item, i) in games"
           :key="i"
-          @click="changeGame(i)"
+          @click="changeGame(item, i)"
+          :class="{ active: i ===  game_.active}"
         >
           <v-list-tile-title>{{ item.name }}</v-list-tile-title>
+          <v-list-tile-avatar>
+            <confirm-button :on-confirm="removeGame" :item="item" confirm-text="Delete?">
+              <v-icon>delete</v-icon>
+            </confirm-button>
+          </v-list-tile-avatar>
         </v-list-tile>
       </v-list>
+      <v-btn type="button" @click="newGame()">Add</v-btn>
+      <form @submit.prevent="addGame" novalidate v-if="game_.show">
+        <v-layout row>
+          <v-flex xs6>
+            <v-text-field
+              v-model="game_.name"
+              required
+              label="game name"
+            ></v-text-field>
+          </v-flex>
+          <v-flex xs6>
+            <v-select
+              :items="config.playerList"
+              v-model="game_.players"
+              label="players"
+            ></v-select>
+          </v-flex>
+        </v-layout>
+        <v-layout row wrap>
+          <v-flex xs6
+                  v-for="(item, i) in game_.player[game_.players]"
+                  :key="i"
+          >
+            <v-text-field
+              v-model="game_.player[game_.players][i]"
+              required
+              label="player"
+            ></v-text-field>
+          </v-flex>
+        </v-layout>
+        <v-layout row>
+          <v-flex xs12>
+            <v-btn type="submit">Set</v-btn>
+          </v-flex>
+        </v-layout>
+      </form>
     </v-navigation-drawer>
   </v-app>
 </template>
@@ -148,9 +190,34 @@
         drawer: true,
         miniVariant: false,
         rightDrawer: false,
-        gameActive: 0,
         config: config,
-        round_: config.round
+
+        round_: {
+          game: {
+            count: 6,
+            type: 'game'
+          },
+          player: [
+            {},
+            {},
+            {},
+            {}
+          ],
+          show: false,
+          active: 0
+        },
+        game_: {
+          name: 'new game',
+          player: {
+            3: ['','',''],
+            4: ['','','','']
+          },
+          rounds: [],
+          show: false,
+          change: false,
+          active: 0,
+          players: 0
+        }
       }
     },
     computed: {
@@ -162,7 +229,7 @@
           }
         },
         set: function (round) {
-          let i = config.players
+          let i = this.playerLen
 
           this.round_.game.count = parseInt(round.game.split(':')[0])
           this.round_.game.type = round.game.split(':')[1]
@@ -171,109 +238,129 @@
             i--
             this.$set(this.round_.player[i], 'count', parseInt(round.player[i].split(':')[0]));
             this.$set(this.round_.player[i], 'type', round.player[i].split(':')[1]);
-//            this.round_.player[i].count = parseInt(round.player[i].split(':')[0])
-//            this.round_.player[i].type = round.player[i].split(':')[1]
           }
         }
       },
+      gameAdd: {
+        get: function () {
+          return {
+            name: this.game_.name,
+            player: this.game_.player[this.game_.players],
+            rounds: this.game_.rounds
+          }
+        },
+        set: function (game) {
+          this.game_.name = game.name
+          this.game_.player[this.game_.players] = game.player
+          this.game_.rounds = game.rounds || []
+        }
+      },
+      playerLen () {
+        return this.game.player.length
+      },
+      roundLen () {
+        return this.game.rounds ? this.game.rounds.length : 0
+      },
       player () {
         let result = []
-        let players = config.players
+        let i = this.playerLen
 
-        while (players) {
+        while (i) {
           result.push({
             gorka: [],
             pulja: [],
             vist: [[], [], [], []]
           })
-          players--
+          i--
         }
-        console.log(this.game.list)
-        this.game.list.forEach(function (round) {
-          let game = round.game.split(':')[0]
-          let gameType = round.game.split(':')[1]
-          let bribe = round.player.map(i => parseInt(i.split(':')[0]))
-          let role = round.player.map(i => i.split(':')[1])
+        if(this.roundLen){
+          this.game.rounds.forEach(function (round) {
+            let game = round.game.split(':')[0]
+            let gameType = round.game.split(':')[1]
+            let bribe = round.player.map(i => parseInt(i.split(':')[0]))
+            let role = round.player.map(i => i.split(':')[1])
 
-          let playId = role.indexOf('play')
-          let gameGood = bribe[playId] - game
+            let playId = role.indexOf('play')
+            let gameGood = bribe[playId] - game
 
-          let vistBribe = round.player.filter(i => /vist|pas/.test(i)).reduce((p, i) => p + parseInt(i.split(':')[0]), 0)
-          let vistBribe1
-          let vistBribe2
-          let vistId1 = role.indexOf('vist')
-          let vistId2 = role.indexOf('vist', vistId1 + 1)
-          let vistGood = vistBribe - config[game].vist
-          let vistGood1
-          let vistGood2
+            let vistBribe = round.player.filter(i => /vist|pas/.test(i)).reduce((p, i) => p + parseInt(i.split(':')[0]), 0)
+            let vistBribe1
+            let vistBribe2
+            let vistId1 = role.indexOf('vist')
+            let vistId2 = role.indexOf('vist', vistId1 + 1)
+            let vistGood = vistBribe - config[game].vist
+            let vistGood1
+            let vistGood2
 
-          let handId = role.indexOf('hand')
-          let handBribe = bribe[handId]
+            let handId = role.indexOf('hand')
+            let handBribe = bribe[handId]
 
-          let rozpMin = Math.min.apply(null, bribe)
+            let rozpMin = Math.min.apply(null, bribe)
 
-          // ктото играет
-          if (playId > -1) {
-            // сыграная игра
-            if (gameGood > -1) {
-              setResult(result, 'pulja', playId, config[game].pulja)
-              if (gameType === 'without') {
-                setResult(result, 'gorka', handId, config[game].pulja)
-              } else if (handBribe) {
-                setResult(result, 'vist', handId,
-                  config[game].pulja * handBribe,
-                  playId)
+            // ктото играет
+            if (playId > -1) {
+              // сыграная игра
+              if (gameGood > -1) {
+                setResult(result, 'pulja', playId, config[game].pulja)
+                if (gameType === 'without') {
+                  setResult(result, 'gorka', handId, config[game].pulja)
+                } else if (handBribe) {
+                  setResult(result, 'vist', handId,
+                    config[game].pulja * handBribe,
+                    playId)
+                }
               }
-            }
-            // не сыграная игра
-            else setResult(result, 'gorka', playId, -gameGood * config[game].pulja)
+              // не сыграная игра
+              else setResult(result, 'gorka', playId, -gameGood * config[game].pulja)
 
-            // вистуют двое
-            if (vistId1 > -1 && vistId2 > -1) {
-              vistBribe1 = bribe[vistId1]
-              vistBribe2 = bribe[vistId2]
-              vistGood1 = vistBribe1 - config[game].vist / 2
-              vistGood2 = vistBribe2 - config[game].vist / 2
-            }
-            // вистует один
-            else if (vistId1 > -1 || vistId2 > -1) {
-              vistBribe1 = vistBribe
-              vistBribe2 = vistBribe
-              vistGood1 = vistGood
-              vistGood2 = vistGood
-            }
-            setResult(result, 'vist', vistId1,
-              config[game].pulja * (gameGood > -1 ? vistBribe1 : vistBribe1 - gameGood),
-              playId)
-            setResult(result, 'vist', vistId2,
-              config[game].pulja * (gameGood > -1 ? vistBribe2 : vistBribe2 - gameGood),
-              playId)
-
-            if (vistGood < 0 && vistGood1 < 0) setResult(result, 'gorka', vistId1, -vistGood1 * config[game].pulja)
-            if (vistGood < 0 && vistGood2 < 0) setResult(result, 'gorka', vistId2, -vistGood2 * config[game].pulja)
-          }
-          // роспасы
-          else {
-            let id = -1
-            do {
-              id = bribe.indexOf(0, id + 1)
-              if (id !== handId) {
-                setResult(result, 'pulja', id, config[game].pulja)
+              // вистуют двое
+              if (vistId1 > -1 && vistId2 > -1) {
+                vistBribe1 = bribe[vistId1]
+                vistBribe2 = bribe[vistId2]
+                vistGood1 = vistBribe1 - config[game].vist / 2
+                vistGood2 = vistBribe2 - config[game].vist / 2
               }
-            } while (id > -1)
-
-            bribe.forEach((i, id) => {
-              let bribe = i - rozpMin
-              if (bribe) {
-                setResult(result, 'gorka', id, bribe * config[game].rozp)
+              // вистует один
+              else if (vistId1 > -1 || vistId2 > -1) {
+                vistBribe1 = vistBribe
+                vistBribe2 = vistBribe
+                vistGood1 = vistGood
+                vistGood2 = vistGood
               }
-            })
-          }
-        })
+              setResult(result, 'vist', vistId1,
+                config[game].pulja * (gameGood > -1 ? vistBribe1 : vistBribe1 - gameGood),
+                playId)
+              setResult(result, 'vist', vistId2,
+                config[game].pulja * (gameGood > -1 ? vistBribe2 : vistBribe2 - gameGood),
+                playId)
+
+              if (vistGood < 0 && vistGood1 < 0) setResult(result, 'gorka', vistId1, -vistGood1 * config[game].pulja)
+              if (vistGood < 0 && vistGood2 < 0) setResult(result, 'gorka', vistId2, -vistGood2 * config[game].pulja)
+            }
+            // роспасы
+            else {
+              let id = -1
+              do {
+                id = bribe.indexOf(0, id + 1)
+                if (id !== handId) {
+                  setResult(result, 'pulja', id, config[game].pulja)
+                }
+              } while (id > -1)
+
+              bribe.forEach((i, id) => {
+                let bribe = i - rozpMin
+                if (bribe) {
+                  setResult(result, 'gorka', id, bribe * config[game].rozp)
+                }
+              })
+            }
+          })
+        }
+
         return result
       },
       game () {
-        return this.games[this.gameActive]
+        return this.games[this.game_.active]
       }
     },
     firebase () {
@@ -282,17 +369,45 @@
       }
     },
     methods: {
-      changeGame (i) {
-        this.gameActive = i
+      changeGame (game, i) {
+        if(game.rounds){
+          this.setRound(game.rounds[0], 0)
+        } else {
+          this.setRound(config.roundAdd, 0)
+        }
+        this.game_.change = true
+        this.game_.active = i
+        this.setGame (game)
       },
-      renamePlayer (i, newText) {
-        this.$firebaseRefs.games.child(this.gameActive).child('player').child(i).set(newText)
+      newGame(){
+        this.game_.change = false
+        this.setGame (config.gameAdd)
+      },
+      setGame (game) {
+        this.game_.show = true
+        this.game_.players = game.player.length
+        this.gameAdd = game
+      },
+      addGame (){
+        if(this.game_.change){
+          this.$firebaseRefs.games.child(this.game['.key']).set(this.gameAdd)
+        } else {
+          this.$firebaseRefs.games.push(this.gameAdd)
+        }
+        this.game_.show = false
+      },
+      removeGame (game){
+        this.$firebaseRefs.games.child(game['.key']).remove()
+      },
+
+      setRound (round, i) {
+        this.round_.show = true;
+        this.round_.active = i
+        this.round = round
       },
       addRound (){
-        this.$firebaseRefs.games.child(this.gameActive).child('list').push(this.round)
-      },
-      setRound (round) {
-        this.round = round
+        this.$firebaseRefs.games.child(this.game['.key']).child('rounds').child(this.round_.active).set(this.round)
+        this.round_.show = false
       }
     }
   }
