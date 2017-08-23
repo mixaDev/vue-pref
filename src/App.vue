@@ -2,66 +2,78 @@
   <v-app light v-if="games && game">
     <v-navigation-drawer
       persistent
-      :mini-variant="miniVariant"
       v-model="drawer"
       enable-resize-watcher
     >
-      <v-btn type="button" @click="newRound()">Add</v-btn>
-      <form @submit.prevent="addRound" novalidate v-if="round_.show">
-        <v-layout row>
-          <v-flex xs6>
-            <v-select
-              :items="config.gameList"
-              v-model="round_.game.count"
-              label="game"
-            ></v-select>
-          </v-flex>
-          <v-flex xs6>
-            <v-select
-              :items="config.gameType"
-              v-model="round_.game.type"
-              label="type"
-            ></v-select>
-          </v-flex>
-        </v-layout>
-        <v-layout row wrap>
-          <v-flex xs6
-                  v-for="(item, i) in game.player"
-                  :key="i"
-          >
-            {{item}}
+      <v-toolbar dark>
+        <v-toolbar-title>Round List</v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-toolbar-items>
+          <v-btn dark flat @click.native.stop="newRound()">Add</v-btn>
+        </v-toolbar-items>
+      </v-toolbar>
+      <v-dialog v-model="round_.show" fullscreen transition="dialog-bottom-transition">
+        <v-card>
+          <v-toolbar dark>
+            <v-btn icon @click.native.stop="closeRound()" dark>
+              <v-icon>close</v-icon>
+            </v-btn>
+            <v-toolbar-title>Round {{round_.active ? 'Edit' : 'Add'}}</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-toolbar-items>
+              <v-btn dark flat @click.native.stop="addRound()">Save</v-btn>
+            </v-toolbar-items>
+          </v-toolbar>
+          <v-card-text>
             <v-layout row>
               <v-flex xs6>
                 <v-select
-                  :items="config.bribeList"
-                  v-model="round_.player[playerLen][i].count"
-                  label="count"
-                  required
+                  :items="config.gameList"
+                  v-model="round_.game.count"
+                  label="game"
                 ></v-select>
               </v-flex>
               <v-flex xs6>
                 <v-select
-                  :items="config.playerType"
-                  v-model="round_.player[playerLen][i].type"
+                  :items="config.gameType"
+                  v-model="round_.game.type"
                   label="type"
-                  required
                 ></v-select>
               </v-flex>
             </v-layout>
-          </v-flex>
-        </v-layout>
-        <v-layout row>
-          <v-flex xs12>
-            <v-btn type="submit">Set</v-btn>
-          </v-flex>
-        </v-layout>
-      </form>
+            <v-layout row wrap>
+              <v-flex xs6
+                      v-for="(item, i) in game.player"
+                      :key="i"
+              >
+                {{item}}
+                <v-layout row>
+                  <v-flex xs6>
+                    <v-select
+                      :items="config.bribeList"
+                      v-model="round_.player[playerLen][i].count"
+                      label="count"
+                    ></v-select>
+                  </v-flex>
+                  <v-flex xs6>
+                    <v-select
+                      :items="config.playerType"
+                      v-model="round_.player[playerLen][i].type"
+                      label="type"
+                    ></v-select>
+                  </v-flex>
+                </v-layout>
+              </v-flex>
+            </v-layout>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
       <v-list>
         <v-list-tile
           value="true"
           v-for="(item, i) in game.rounds"
           :key="i"
-          @click="changeRound(item, i)"
+          @click.native.stop="editRound(item, i)"
           :class="{ active: i ===  round_.active}"
         >
           <v-list-tile-avatar>
@@ -78,15 +90,8 @@
         </v-list-tile>
       </v-list>
     </v-navigation-drawer>
-    <v-toolbar fixed>
-      <v-toolbar-side-icon @click.stop="drawer = !drawer" light></v-toolbar-side-icon>
-      <v-btn
-        icon
-        light
-        @click.stop="miniVariant = !miniVariant"
-      >
-        <v-icon v-html="miniVariant ? 'chevron_right' : 'chevron_left'"></v-icon>
-      </v-btn>
+    <v-toolbar dark fixed>
+      <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <v-toolbar-title>{{game.name}}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
@@ -142,9 +147,58 @@
     <v-navigation-drawer
       right
       v-model="rightDrawer"
-      clipped
-      persistent
+      temporary
     >
+      <v-toolbar dark>
+        <v-toolbar-title>Game List</v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-toolbar-items>
+          <v-btn dark flat @click.native.stop="newGame()">Add</v-btn>
+        </v-toolbar-items>
+      </v-toolbar>
+      <v-dialog v-model="game_.show" fullscreen transition="dialog-bottom-transition">
+        <v-card>
+          <v-toolbar dark>
+            <v-btn icon @click.native.stop="closeGame()" dark>
+              <v-icon>close</v-icon>
+            </v-btn>
+            <v-toolbar-title>Game {{game_.change ? 'Edit' : 'Add'}}</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-toolbar-items>
+              <v-btn dark flat @click.native.stop="addGame()">Save</v-btn>
+            </v-toolbar-items>
+          </v-toolbar>
+          <v-card-text>
+            <v-layout row>
+              <v-flex xs6>
+                <v-text-field
+                  v-model="game_.name"
+                  label="game name"
+                ></v-text-field>
+              </v-flex>
+              <v-flex xs6>
+                <v-select
+                  :items="config.playerList"
+                  v-model="game_.players"
+                  label="players"
+                  :disabled="game_.change"
+                ></v-select>
+              </v-flex>
+            </v-layout>
+            <v-layout row wrap>
+              <v-flex xs6
+                      v-for="(item, i) in game_.player[game_.players]"
+                      :key="i"
+              >
+                <v-text-field
+                  v-model="game_.player[game_.players][i]"
+                  label="player"
+                ></v-text-field>
+              </v-flex>
+            </v-layout>
+          </v-card-text>
+        </v-card>
+      </v-dialog>
       <v-list>
         <v-list-tile
           v-for="(item, i) in games"
@@ -154,49 +208,13 @@
         >
           <v-list-tile-title>{{ item.name }}</v-list-tile-title>
           <v-list-tile-avatar>
+            <span @click.stop="editGame(item, i)"><v-icon>mode_edit</v-icon></span>
             <confirm-button :on-confirm="removeGame" :item="item" confirm-text="Delete?">
               <v-icon>delete</v-icon>
             </confirm-button>
           </v-list-tile-avatar>
         </v-list-tile>
       </v-list>
-      <v-btn type="button" @click="newGame()">Add</v-btn>
-      <form @submit.prevent="addGame" novalidate v-if="game_.show">
-        <v-layout row>
-          <v-flex xs6>
-            <v-text-field
-              v-model="game_.name"
-              required
-              label="game name"
-            ></v-text-field>
-          </v-flex>
-          <v-flex xs6>
-            <v-select
-              :items="config.playerList"
-              v-model="game_.players"
-              label="players"
-              :disabled="game_.change"
-            ></v-select>
-          </v-flex>
-        </v-layout>
-        <v-layout row wrap>
-          <v-flex xs6
-                  v-for="(item, i) in game_.player[game_.players]"
-                  :key="i"
-          >
-            <v-text-field
-              v-model="game_.player[game_.players][i]"
-              required
-              label="player"
-            ></v-text-field>
-          </v-flex>
-        </v-layout>
-        <v-layout row>
-          <v-flex xs12>
-            <v-btn type="submit">Set</v-btn>
-          </v-flex>
-        </v-layout>
-      </form>
     </v-navigation-drawer>
   </v-app>
 </template>
@@ -210,7 +228,6 @@
     data () {
       return {
         drawer: true,
-        miniVariant: false,
         rightDrawer: false,
         config: config,
 
@@ -288,27 +305,32 @@
     firebase () {
       return {
         games: database.getRef('games')
-//        games: {
-//          source: database.getRef('games'),
-//          asObject: true
-//        }
       }
     },
     methods: {
       changeGame (game, i) {
-        this.newRound()
+        this.game_.active = i
+        this.setGame (game)
+      },
+      editGame (game, i) {
+        this.game_.show = true
         this.game_.change = true
         this.game_.active = i
         this.setGame (game)
       },
       newGame(){
+        this.game_.show = true
         this.game_.change = false
         this.setGame (config.gameAdd)
       },
       setGame (game) {
-        this.game_.show = true
+        this.rightDrawer = false
         this.game_.players = game.player.length
         this.gameAdd = game
+      },
+      closeGame() {
+        this.game_.show = false
+        this.rightDrawer = true
       },
       addGame (){
         if(this.game_.change){
@@ -316,7 +338,7 @@
         } else {
           this.$firebaseRefs.games.push(this.gameAdd)
         }
-        this.game_.show = false
+        this.closeGame()
       },
       removeGame (game){
         if(this.game['.key'] !== game['.key']){
@@ -324,7 +346,7 @@
         }
       },
 
-      changeRound (round, i) {
+      editRound (round, i) {
         this.round_.active = i
         this.setRound(round)
       },
@@ -334,9 +356,14 @@
       },
       setRound (round) {
         this.round_.show = true;
+        this.drawer = false
         this.$nextTick(function () {
           this.roundAdd = round
         })
+      },
+      closeRound () {
+        this.round_.show = false
+        this.drawer = true
       },
       addRound (){
         if(this.round_.active){
@@ -344,7 +371,7 @@
         } else {
           this.$firebaseRefs.games.child(this.game['.key']).child('rounds').push(this.roundAdd)
         }
-        this.round_.show = false
+        this.closeRound()
       },
       removeRound (round){
         this.$firebaseRefs.games.child(this.game['.key']).child('rounds').child(round).remove()
