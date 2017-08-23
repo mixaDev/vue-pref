@@ -33,9 +33,10 @@ export default {
     player: ['', '', '', '']
   },
   gameAdd: {
-    name: 'new game',
+    name: 'new game:11',
     player: ['', '', ''],
     rounds: []
   },
-  playerList: [3, 4]
+  playerList: [3, 4],
+  puljaList: [11, 21]
 }
