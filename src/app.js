@@ -42,7 +42,7 @@ export default {
     roundAdd: {
       get: function () {
         return {
-          game: this.round_.game.count + ':' + this.round_.game.type,
+          game: this.round_.game.count + ':' + this.round_.game.type + ':' + this.round_.game.type2,
           player: this.round_.player[this.playerLen].map(i => i.count + ':' + i.type)
         }
       },
@@ -51,6 +51,7 @@ export default {
 
         this.round_.game.count = parseInt(round.game.split(':')[0])
         this.round_.game.type = round.game.split(':')[1]
+        this.round_.game.type2 = round.game.split(':')[2] || ''
 
         while (i) {
           i--
@@ -75,7 +76,7 @@ export default {
       }
     },
     player () {
-      return player(this.game.rounds, this.playerLen)
+      return player(this.game)
     },
     game () {
       return this.games[this.game_.active]
@@ -106,13 +107,11 @@ export default {
       this.setGame (config.gameAdd)
     },
     setGame (game) {
-      this.rightDrawer = false
       this.game_.players = game.player.length
       this.gameAdd = game
     },
     closeGame() {
       this.game_.show = false
-      this.rightDrawer = true
     },
     addGame (){
       if(this.game_.change){
@@ -138,14 +137,12 @@ export default {
     },
     setRound (round) {
       this.round_.show = true;
-      this.drawer = false
       this.$nextTick(function () {
         this.roundAdd = round
       })
     },
     closeRound () {
       this.round_.show = false
-      this.drawer = true
     },
     addRound (){
       if(this.round_.active){

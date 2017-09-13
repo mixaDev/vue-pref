@@ -1,5 +1,5 @@
 <template>
-  <v-app light v-if="games && game">
+  <v-app toolbar v-if="games && game">
     <v-navigation-drawer
       persistent
       v-model="drawer"
@@ -29,17 +29,24 @@
           </v-toolbar>
           <v-card-text>
             <v-layout row>
-              <v-flex xs6>
+              <v-flex xs4>
                 <v-select
                   :items="config.gameList"
                   v-model="round_.game.count"
                   label="game"
                 ></v-select>
               </v-flex>
-              <v-flex xs6>
+              <v-flex xs4>
                 <v-select
                   :items="config.gameType"
                   v-model="round_.game.type"
+                  label="type"
+                ></v-select>
+              </v-flex>
+              <v-flex xs4>
+                <v-select
+                  :items="config.gameType2"
+                  v-model="round_.game.type2"
                   label="type"
                 ></v-select>
               </v-flex>
@@ -110,8 +117,9 @@
           <v-flex xs6
                   v-for="(item, i) in player"
                   :key="i"
+                  :class="['order-xs' + item.order]"
           >
-            <v-card>
+            <v-card :class="{'blue-grey lighten-4': item.hand}">
               <div>
                 <b>{{game.player[i]}}</b>
               </div>

@@ -1,70 +1,22 @@
 import config from './config.js'
 
-function setResult (result, type, id, add, playId, isLast) {
-  if (id > -1) {
-    let a = playId !== null ? result[id][type][playId] : result[id][type]
-    a.push((a[a.length - 1] || 0) + add)
+export const player = (game) => {
+  let rounds = game.rounds
+  let playerLen = game.player.length
+  let pulja = parseInt(game.name.split(':')[1] || 0)
 
-    if(isLast){
-      if(playId){
-        result[id].last[type][playId] = true
-      } else {
-        result[id].last[type] = true
-      }
-    }
-  }
-}
-
-function calculation (result){
-  let pulja = result.map(i => i.pulja[i.pulja.length - 1] || 0)
-  let minPulja = Math.min.apply(null, pulja)
-  let pulja2 = pulja.map(i => i - minPulja)
-//    console.log(pulja, minPulja, pulja2)
-
-  let gorka = result.map((i, k) => (i.gorka[i.gorka.length - 1] || 0) - pulja2[k])
-  let minGorka = Math.min.apply(null, gorka)
-  let gorka2 = gorka.map(i => (i - minGorka) * 10 / gorka.length)
-//    console.log(gorka, minGorka, gorka2)
-
-  let vist = result.map(i => i.vist.map(i => i[i.length - 1] || 0))
-  let vist2 = vist.map((i, id) => i.map((ii, iid) => (id !== iid) ? ii + gorka2[iid]: ii))
-  let vist3 = vist2.map((i, id) => i.map((ii, iid) => (id !== iid) ? ii - vist2[iid][id]: ii))
-
-  let calculation = vist3.map(i => i.reduce((p,c) => p+c, 0))
-  calculation.forEach((i, id) => {
-    result[id].calculation.push(Math.round(i))
-  })
-//    console.log(vist, vist2, vist3, calculation)
-  return calculation
-}
-
-
-export const player = (rounds, playerLen) => {
   let result = []
-  let i = playerLen
 
-  while (i) {
-    result.push({
-      gorka: [],
-      pulja: [],
-      vist: playerLen === 3 ? [[], [], []] : [[], [], [], []],
-      calculation: [],
-      last: {
-        gorka: false,
-        pulja: false,
-        vist: playerLen === 3 ? [false, false, false] : [false, false, false, false]
-      }
-    })
-    i--
-  }
+  initResult()
 
   if(rounds){
     let last = rounds[Object.keys(rounds)[Object.keys(rounds).length - 1]]
     for (let key in rounds) {
       if(rounds.hasOwnProperty(key)){
         let round  = rounds[key]
-        let game = round.game.split(':')[0]
+        let game = parseInt(round.game.split(':')[0])
         let gameType = round.game.split(':')[1]
+        let gameType2 = round.game.split(':')[2]
         let bribe = round.player.map(i => parseInt(i.split(':')[0]))
         let role = round.player.map(i => i.split(':')[1])
         let isLast = last === round
@@ -87,21 +39,26 @@ export const player = (rounds, playerLen) => {
 
         let rozpMin = Math.min.apply(null, bribe)
 
+        if(isLast){
+          result[(handId + 1)%playerLen].hand = true
+        }
+
         // ктото играет
         if (playId > -1) {
           // сыграная игра
           if (gameGood > -1) {
-            setResult(result, 'pulja', playId, config[game].pulja, null, isLast)
-            if (gameType === 'without') {
-              setResult(result, 'gorka', handId, config[game].pulja, null, isLast)
+            setResult('pulja', playId, config[game].pulja, null, isLast, gameType === 'close')
+
+            if (gameType2 === 'without') {
+              setResult('gorka', handId, config[game].pulja, null, isLast)
             } else if (handBribe) {
-              setResult(result, 'vist', handId,
+              setResult('vist', handId,
                 config[game].pulja * handBribe,
                 playId, isLast)
             }
           }
           // не сыграная игра
-          else setResult(result, 'gorka', playId, -gameGood * config[game].pulja, null, isLast)
+          else setResult('gorka', playId, -gameGood * config[game].pulja, null, isLast)
 
           // вистуют двое
           if (vistId1 > -1 && vistId2 > -1) {
@@ -117,21 +74,21 @@ export const player = (rounds, playerLen) => {
             vistGood1 = vistGood
             vistGood2 = vistGood
           }
-          setResult(result, 'vist', vistId1,
+          setResult('vist', vistId1,
             config[game].pulja * (gameGood > -1 ? vistBribe1 : vistBribe1 - gameGood),
             playId, isLast)
-          setResult(result, 'vist', vistId2,
+          setResult('vist', vistId2,
             config[game].pulja * (gameGood > -1 ? vistBribe2 : vistBribe2 - gameGood),
             playId, isLast)
           // пол виста
           if(config[game].vist2){
-            setResult(result, 'vist', vistId3,
+            setResult('vist', vistId3,
               config[game].pulja * config[game].vist2,
               playId, isLast)
           }
 
-          if (vistGood < 0 && vistGood1 < 0) setResult(result, 'gorka', vistId1, -vistGood1 * config[game].pulja, null, isLast)
-          if (vistGood < 0 && vistGood2 < 0) setResult(result, 'gorka', vistId2, -vistGood2 * config[game].pulja, null, isLast)
+          if (vistGood < 0 && vistGood1 < 0) setResult('gorka', vistId1, -vistGood1 * config[game].pulja, null, isLast)
+          if (vistGood < 0 && vistGood2 < 0) setResult('gorka', vistId2, -vistGood2 * config[game].pulja, null, isLast)
         }
         // роспасы
         else {
@@ -139,43 +96,134 @@ export const player = (rounds, playerLen) => {
           do {
             id = bribe.indexOf(0, id + 1)
             if (id !== handId) {
-              setResult(result, 'pulja', id, config[game].pulja, null, isLast)
+              setResult('pulja', id, config[game].pulja, null, isLast)
             }
           } while (id > -1)
 
           bribe.forEach((i, id) => {
             let bribe = i - rozpMin
             if (bribe) {
-              setResult(result, 'gorka', id, bribe * config[game].rozp, null, isLast)
+              setResult('gorka', id, bribe * config[game].rozp, null, isLast)
             }
           })
         }
-        calculation(result)
+        calculation()
       }
     }
+    setTotal()
+  }
+
+  return result
+
+  function initResult(){
+    let i = 0
+    let order = {
+      0 : 1,
+      1 : 2,
+      2 : 4,
+      3 : 3
+    }
+
+    while (i < playerLen) {
+      result.push({
+        id: i,
+        gorka: [],
+        pulja: [],
+        vist: playerLen === 3 ? [[], [], []] : [[], [], [], []],
+        calculation: [],
+        last: {
+          gorka: false,
+          pulja: false,
+          vist: playerLen === 3 ? [false, false, false] : [false, false, false, false]
+        },
+        hand: false,
+        order: order[i]
+      })
+      i++
+    }
+  }
+
+  function setResult (type, id, add, playId, isLast, close) {
+    if (id > -1) {
+      let a = playId !== null ? result[id][type][playId] : result[id][type]
+      let last = a[a.length - 1] || 0
+      let total = last + add
+      let puljaClose = total - pulja
+      if(type === 'pulja' && puljaClose > 0){
+        if(last !== pulja){
+          a.push(pulja)
+        }
+        if(close){
+          setClose(result, id, puljaClose, id, isLast)
+        } else {
+          setResult ('gorka', id, -puljaClose, null, isLast)
+        }
+      } else {
+        a.push(total)
+      }
+
+      if(isLast){
+        if(playId!== null){
+          result[id].last[type][playId] = true
+        } else {
+          result[id].last[type] = true
+        }
+      }
+    }
+  }
+
+  function setClose(list, id, add, playId, isLast){
+    let filter = list.filter((i) => i.id !== id)
+    if(!filter.length) {
+      setResult ('gorka', playId, -add, null, isLast)
+      return
+    }
+    let item = String(Math.min.apply(null, filter.map(i => (i.pulja[i.pulja.length - 1] || 0) + '.' + i.id)))
+    let minPulja = parseInt(item.split('.')[0])
+    let closeId = parseInt(item.split('.')[1])
+    let total = minPulja + add
+    let puljaClose = total - pulja
+    if(minPulja < pulja -1 && minPulja > 0){
+      if(puljaClose > 0){
+        setResult('vist', playId, 10 * (add - puljaClose), closeId, isLast)
+        setResult('pulja', closeId, add - puljaClose, null, isLast)
+
+        setClose(filter, closeId, puljaClose, playId, isLast)
+      } else {
+        setResult('vist', playId, 10 * add, closeId, isLast)
+        setResult('pulja', closeId, add, null, isLast)
+      }
+    } else {
+      setClose(filter, closeId, add, playId, isLast)
+    }
+  }
+
+  function calculation (){
+    let pulja = result.map(i => i.pulja[i.pulja.length - 1] || 0)
+    let minPulja = Math.min.apply(null, pulja)
+    let pulja2 = pulja.map(i => i - minPulja)
+//    console.log(pulja, minPulja, pulja2)
+
+    let gorka = result.map((i, k) => (i.gorka[i.gorka.length - 1] || 0) - pulja2[k])
+    let minGorka = Math.min.apply(null, gorka)
+    let gorka2 = gorka.map(i => (i - minGorka) * 10 / gorka.length)
+//    console.log(gorka, minGorka, gorka2)
+
+    let vist = result.map(i => i.vist.map(i => i[i.length - 1] || 0))
+    let vist2 = vist.map((i, id) => i.map((ii, iid) => (id !== iid) ? ii + gorka2[iid]: ii))
+    let vist3 = vist2.map((i, id) => i.map((ii, iid) => (id !== iid) ? ii - vist2[iid][id]: ii))
+
+    let calculation = vist3.map(i => i.reduce((p,c) => p+c, 0))
+    calculation.forEach((i, id) => {
+      result[id].calculation.push(Math.round(i))
+    })
+//    console.log(vist, vist2, vist3, calculation)
+    return calculation
+  }
+
+  function setTotal(){
     result.forEach((i) => {
       return i.total = (i.calculation[i.calculation.length -1] || 0) - (i.calculation[i.calculation.length -2] || 0)
     })
   }
-//        console.log(calculation(
-//          [
-//            {
-//              gorka: [322],
-//              pulja: [11],
-//              vist: [[0],[120],[124]]
-//            },
-//            {
-//              gorka: [124],
-//              pulja: [11],
-//              vist: [[240],[0],[154]]
-//            },
-//            {
-//              gorka: [82],
-//              pulja: [11],
-//              vist: [[28],[142],[0]]
-//            }
-//          ]
-//        ))
-
-  return result
 }

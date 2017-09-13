@@ -25,7 +25,8 @@ export default {
   },
 
   gameList: [6, 7, 8, 9, 10],
-  gameType: ['game', 'without', 'rozp', 'mizer'],
+  gameType: ['game', 'rozp', 'close', 'mizer'],
+  gameType2: ['', 'without'],
   bribeList: [0,1,2,3,4,5,6,7,8,9,10],
   playerType: ['play', 'vist', 'pas', 'hand', '1/2 vist'],
   roundAdd: {
