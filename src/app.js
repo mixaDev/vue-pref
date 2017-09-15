@@ -78,28 +78,45 @@ export default {
     player () {
       return player(this.game)
     },
-    game () {
-      return this.games[this.game_.active]
-    },
     playerLen () {
       return this.game.player.length
+    },
+    roundsReverse () {
+      return this.rounds.slice().reverse();
+    },
+    gamesReverse () {
+      return this.games.slice().reverse();
+    }
+  },
+  watch: {
+    'game_.active': function (val, oldVal) {
+      this.$bindAsObject('game', database.getRef('games/' + this.game_.active))
+      this.$bindAsArray('rounds', database.getRef('games/' + this.game_.active + '/rounds'))
     }
   },
   firebase () {
     return {
       games: database.getRef('games'),
-      rounds: database.getRef('games/' + this.game_.active + '/rounds')
+      rounds: database.getRef('games/' + this.game_.active + '/rounds'),
+      game: {
+        source: database.getRef('games/' + this.game_.active),
+        asObject: true,
+      },
+      active:  {
+        source: database.getRef('active'),
+        asObject: true,
+      }
     }
   },
   methods: {
-    changeGame (game, i) {
-      this.game_.active = i
+    changeGame (game) {
+      this.game_.active = game['.key']
+      this.setActive (game['.key'])
       this.setGame (game)
     },
-    editGame (game, i) {
+    editGame (game) {
       this.game_.show = true
       this.game_.change = true
-      this.game_.active = i
       this.setGame (game)
     },
     newGame(){
@@ -123,13 +140,13 @@ export default {
       this.closeGame()
     },
     removeGame (game){
-      if(this.game['.key'] !== game['.key']){
+      if(this.game['.key'] !== game['.key'] && game['.key'] != 0){
         this.$firebaseRefs.games.child(game['.key']).remove()
       }
     },
 
-    editRound (round, i) {
-      this.round_.active = i
+    editRound (round) {
+      this.round_.active = round['.key']
       this.setRound(round)
     },
     newRound(){
@@ -154,7 +171,10 @@ export default {
       this.closeRound()
     },
     removeRound (round){
-      this.$firebaseRefs.games.child(this.game['.key']).child('rounds').child(round).remove()
+      this.$firebaseRefs.games.child(this.game['.key']).child('rounds').child(round['.key']).remove()
+    },
+    setActive (id){
+      this.$firebaseRefs.active.set(id)
     }
   }
 }

@@ -1,6 +1,7 @@
 import config from './config.js'
 
 export const player = (game) => {
+  if(!game.player) return
   let rounds = game.rounds
   let playerLen = game.player.length
   let pulja = parseInt(game.name.split(':')[1] || 0)
@@ -216,8 +217,10 @@ export const player = (game) => {
 
   function setTotal(){
     result.forEach((i) => {
-      i.totalGame = i.totalGames[i.totalGames.length -1]
-      i.totalRound = i.totalRounds[i.totalRounds.length -1]
+      i.totalGames.reverse()
+      i.totalRounds.reverse()
+      i.totalGame = i.totalGames[0]
+      i.totalRound = i.totalRounds[0]
     })
   }
 }
