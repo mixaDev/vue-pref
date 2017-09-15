@@ -117,12 +117,6 @@ export const player = (game) => {
 
   function initResult(){
     let i = 0
-    let order = {
-      0 : 1,
-      1 : 2,
-      2 : 4,
-      3 : 3
-    }
 
     while (i < playerLen) {
       result.push({
@@ -130,14 +124,14 @@ export const player = (game) => {
         gorka: [],
         pulja: [],
         vist: playerLen === 3 ? [[], [], []] : [[], [], [], []],
-        calculation: [],
+        totalGames: [],
+        totalRounds: [],
         last: {
           gorka: false,
           pulja: false,
           vist: playerLen === 3 ? [false, false, false] : [false, false, false, false]
         },
-        hand: false,
-        order: order[i]
+        hand: false
       })
       i++
     }
@@ -215,15 +209,15 @@ export const player = (game) => {
 
     let calculation = vist3.map(i => i.reduce((p,c) => p+c, 0))
     calculation.forEach((i, id) => {
-      result[id].calculation.push(Math.round(i))
+      result[id].totalGames.push(Math.round(i))
+      result[id].totalRounds.push((result[id].totalGames[result[id].totalGames.length -1] || 0) - (result[id].totalGames[result[id].totalGames.length -2] || 0))
     })
-//    console.log(vist, vist2, vist3, calculation)
-    return calculation
   }
 
   function setTotal(){
     result.forEach((i) => {
-      return i.total = (i.calculation[i.calculation.length -1] || 0) - (i.calculation[i.calculation.length -2] || 0)
+      i.totalGame = i.totalGames[i.totalGames.length -1]
+      i.totalRound = i.totalRounds[i.totalRounds.length -1]
     })
   }
 }

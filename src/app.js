@@ -87,7 +87,8 @@ export default {
   },
   firebase () {
     return {
-      games: database.getRef('games')
+      games: database.getRef('games'),
+      rounds: database.getRef('games/' + this.game_.active + '/rounds')
     }
   },
   methods: {

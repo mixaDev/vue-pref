@@ -1,11 +1,11 @@
 <template>
-  <v-app toolbar v-if="games && game">
+  <v-app dark toolbar v-if="games && game">
     <v-navigation-drawer
       persistent
       v-model="drawer"
       enable-resize-watcher
     >
-      <v-toolbar dark>
+      <v-toolbar>
         <v-toolbar-title>Round List</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn
@@ -17,14 +17,14 @@
       </v-toolbar>
       <v-dialog v-model="round_.show" fullscreen transition="dialog-bottom-transition">
         <v-card>
-          <v-toolbar dark>
-            <v-btn icon @click.native.stop="closeRound()" dark>
+          <v-toolbar>
+            <v-btn icon @click.native.stop="closeRound()">
               <v-icon>close</v-icon>
             </v-btn>
             <v-toolbar-title>Round {{round_.active ? 'Edit' : 'Add'}}</v-toolbar-title>
             <v-spacer></v-spacer>
             <v-toolbar-items>
-              <v-btn dark flat @click.native.stop="addRound()">Save</v-btn>
+              <v-btn flat @click.native.stop="addRound()">Save</v-btn>
             </v-toolbar-items>
           </v-toolbar>
           <v-card-text>
@@ -79,28 +79,41 @@
         </v-card>
       </v-dialog>
       <v-list>
-        <v-list-tile
-          value="true"
-          v-for="(item, i) in game.rounds"
-          :key="i"
-          @click.native.stop="editRound(item, i)"
-          :class="{ active: i ===  round_.active}"
-        >
-          <v-list-tile-avatar>
-            {{item.game.split(':')[0]}}
-          </v-list-tile-avatar>
-          <v-list-tile-content>
-            <v-list-tile-title v-text="item.game.split(':')[1]"></v-list-tile-title>
-          </v-list-tile-content>
-          <v-list-tile-avatar>
-            <confirm-button :on-confirm="removeRound" :item="i" confirm-text="Delete?">
-              <v-icon>delete</v-icon>
-            </confirm-button>
-          </v-list-tile-avatar>
-        </v-list-tile>
+        <template v-for="(item, i, index) in game.rounds">
+          <v-list-tile
+            :key="i"
+            @click.native.stop="editRound(item, i)"
+            :class="{ active: i ===  round_.active}"
+          >
+            <v-list-tile-avatar>
+              <v-btn fab secondary small>
+                {{item.game.split(':')[0]}}
+              </v-btn>
+            </v-list-tile-avatar>
+            <v-list-tile-content>
+              <v-list-tile-title>{{item.game.split(':')[1]}}<span v-if="item.game.split(':')[2]"> / {{item.game.split(':')[2]}}</span></v-list-tile-title>
+              <v-list-tile-sub-title>
+                <v-layout row wrap text-xs-center>
+                  <v-flex xs3 v-for="(item, i) in player" :key="i">
+                    <div :class="{'green lighten-2': item.totalRounds[index] > 0, 'red lighten-2': item.totalRounds[index] < 0}">
+                      {{item.totalRounds[index]}}/{{item.totalGames[index]}}
+                    </div>
+                  </v-flex>
+                </v-layout>
+              </v-list-tile-sub-title>
+            </v-list-tile-content>
+            <v-list-tile-action>
+              <confirm-button :on-confirm="removeRound" :item="i" confirm-text="Delete?">
+                <v-icon>delete</v-icon>
+              </confirm-button>
+            </v-list-tile-action>
+          </v-list-tile>
+          <v-divider inset></v-divider>
+        </template>
+
       </v-list>
     </v-navigation-drawer>
-    <v-toolbar dark fixed>
+    <v-toolbar fixed>
       <v-toolbar-side-icon @click.stop="drawer = !drawer"></v-toolbar-side-icon>
       <v-toolbar-title>{{game.name}}</v-toolbar-title>
       <v-spacer></v-spacer>
@@ -108,7 +121,7 @@
         icon
         @click.stop="rightDrawer = !rightDrawer"
       >
-        <v-icon>menu</v-icon>
+        <v-icon>view_module</v-icon>
       </v-btn>
     </v-toolbar>
     <main>
@@ -117,43 +130,42 @@
           <v-flex xs6
                   v-for="(item, i) in player"
                   :key="i"
-                  :class="['order-xs' + item.order]"
+                  :class="['order-xs' + config.order[i]]"
           >
-            <v-card :class="{'blue-grey lighten-4': item.hand}">
-              <div>
-                <b>{{game.player[i]}}</b>
-              </div>
-              <div>
-                g
-                 <span :class="{'blue': item.last.gorka && (i === item.gorka.length - 1)}"
-                       v-for="(g, i) in item.gorka"
-                 >{{g}}.</span>
-              </div>
-              <div>
-                p
-                <span :class="{'blue': item.last.pulja && (i === item.pulja.length - 1)}"
-                     v-for="(p, i) in item.pulja"
-                >{{p}}.</span>
-              </div>
-              <div
-                v-for="(vist, ii) in item.vist"
-                v-if="i !== ii"
-              >
-                <b>{{game.player[ii]}}</b>
-                <span :class="{'blue': item.last.vist[ii] && (iii === vist.length - 1)}"
-                      v-for="(v, iii) in vist"
-                >{{v}}.</span>
-              </div>
-              <div>{{item.calculation}}</div>
-              <div>
-                <v-icon class="green" v-if="item.total > 0">arrow_drop_up</v-icon>
-                <v-icon class="red" v-if="item.total < 0">arrow_drop_down</v-icon>
-                {{item.total}}
-              </div>
-            </v-card>
+            <v-toolbar :class="{'theme--light': item.hand}">
+              <v-chip small :class="['white--text',{'green': item.totalGame > 0, 'red': item.totalGame < 0}]">
+                {{item.totalGame}}
+              </v-chip>
+              <v-spacer></v-spacer>
+              <div class="title">{{game.player[i]}}</div>
+              <v-spacer></v-spacer>
+              <v-chip small :class="['white--text',{'green': item.totalRound > 0, 'red': item.totalRound < 0}]">
+                {{item.totalRound}}
+              </v-chip>
+            </v-toolbar>
+            <div>
+              g
+              <span :class="{'blue': item.last.gorka && (i === item.gorka.length - 1)}"
+                    v-for="(g, i) in item.gorka"
+              >{{g}}.</span>
+            </div>
+            <div>
+              p
+              <span :class="{'blue': item.last.pulja && (i === item.pulja.length - 1)}"
+                    v-for="(p, i) in item.pulja"
+              >{{p}}.</span>
+            </div>
+            <div
+              v-for="(vist, ii) in item.vist"
+              v-if="i !== ii"
+            >
+              <b>{{game.player[ii]}}</b>
+              <span :class="{'blue': item.last.vist[ii] && (iii === vist.length - 1)}"
+                    v-for="(v, iii) in vist"
+              >{{v}}.</span>
+            </div>
           </v-flex>
         </v-layout>
-
       </v-container>
     </main>
     <v-navigation-drawer
@@ -161,7 +173,7 @@
       v-model="rightDrawer"
       temporary
     >
-      <v-toolbar dark>
+      <v-toolbar>
         <v-toolbar-title>Game List</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-btn
@@ -173,14 +185,14 @@
       </v-toolbar>
       <v-dialog v-model="game_.show" fullscreen transition="dialog-bottom-transition">
         <v-card>
-          <v-toolbar dark>
-            <v-btn icon @click.native.stop="closeGame()" dark>
+          <v-toolbar>
+            <v-btn icon @click.native.stop="closeGame()">
               <v-icon>close</v-icon>
             </v-btn>
             <v-toolbar-title>Game {{game_.change ? 'Edit' : 'Add'}}</v-toolbar-title>
             <v-spacer></v-spacer>
             <v-toolbar-items>
-              <v-btn dark flat @click.native.stop="addGame()">Save</v-btn>
+              <v-btn flat @click.native.stop="addGame()">Save</v-btn>
             </v-toolbar-items>
           </v-toolbar>
           <v-card-text>
@@ -211,6 +223,7 @@
               <v-flex xs6
                       v-for="(item, i) in game_.player[game_.players]"
                       :key="i"
+                      :class="['order-xs' + config.order[i]]"
               >
                 <v-text-field
                   v-model="game_.player[game_.players][i]"
@@ -222,21 +235,23 @@
         </v-card>
       </v-dialog>
       <v-list>
-        <v-list-tile
-          v-for="(item, i) in games"
-          :key="i"
-          @click="changeGame(item, i)"
-          :class="{ active: i ===  game_.active}"
-        >
-          <v-list-tile-title>{{ item.name.split(':')[0] }}</v-list-tile-title>
-          <v-list-tile-avatar>
-            <span>{{ item.name.split(':')[1] }}</span>
-            <span @click.stop="editGame(item, i)"><v-icon>mode_edit</v-icon></span>
-            <confirm-button :on-confirm="removeGame" :item="item" confirm-text="Delete?">
-              <v-icon>delete</v-icon>
-            </confirm-button>
-          </v-list-tile-avatar>
-        </v-list-tile>
+        <template v-for="(item, i) in games">
+          <v-list-tile
+            :key="i"
+            @click="changeGame(item, i)"
+            :class="{ active: i ===  game_.active}"
+          >
+            <v-list-tile-title>{{ item.name.split(':')[0] }}</v-list-tile-title>
+            <v-list-tile-avatar>
+              <span>{{ item.name.split(':')[1] }}</span>
+              <span @click.stop="editGame(item, i)"><v-icon>mode_edit</v-icon></span>
+              <confirm-button :on-confirm="removeGame" :item="item" confirm-text="Delete?">
+                <v-icon>delete</v-icon>
+              </confirm-button>
+            </v-list-tile-avatar>
+          </v-list-tile>
+          <v-divider></v-divider>
+        </template>
       </v-list>
     </v-navigation-drawer>
   </v-app>
