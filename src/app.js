@@ -56,7 +56,7 @@ export default {
         while (i) {
           i--
           this.$set(this.round_.player[this.playerLen][i], 'count', parseInt(round.player[i].split(':')[0] || 0));
-          this.$set(this.round_.player[this.playerLen][i], 'type', round.player[i].split(':')[1] || '');
+          this.$set(this.round_.player[this.playerLen][i], 'type', round.player[i].split(':')[1] || 'pas');
         }
       }
     },
@@ -115,8 +115,9 @@ export default {
       this.setGame (game)
     },
     editGame (game) {
+      this.game_.active = game['.key']
       this.game_.show = true
-      this.game_.change = true
+      this.game_.change = game['.key']
       this.setGame (game)
     },
     newGame(){
@@ -133,7 +134,7 @@ export default {
     },
     addGame (){
       if(this.game_.change){
-        this.$firebaseRefs.games.child(this.game['.key']).set(this.gameAdd)
+        this.$firebaseRefs.games.child(this.game_.change).set(this.gameAdd)
       } else {
         this.$firebaseRefs.games.push(this.gameAdd)
       }

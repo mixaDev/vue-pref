@@ -31,6 +31,7 @@ export const player = (game) => {
         let vistId1 = role.indexOf('vist')
         let vistId2 = role.indexOf('vist', vistId1 + 1)
         let vistId3 = role.indexOf('1/2 vist')
+        let pasId = role.indexOf('pas')
         let vistGood = vistBribe - config[game].vist
         let vistGood1
         let vistGood2
@@ -59,7 +60,14 @@ export const player = (game) => {
             }
           }
           // не сыграная игра
-          else setResult('gorka', playId, -gameGood * config[game].pulja, null, isLast)
+          else {
+            setResult('gorka', playId, -gameGood * config[game].pulja, null, isLast)
+
+            // соболезнование
+            setResult('vist', pasId,
+              config[game].pulja * -gameGood,
+              playId, isLast)
+          }
 
           // вистуют двое
           if (vistId1 > -1 && vistId2 > -1) {
@@ -87,9 +95,11 @@ export const player = (game) => {
               config[game].pulja * config[game].vist2,
               playId, isLast)
           }
-
-          if (vistGood < 0 && vistGood1 < 0) setResult('gorka', vistId1, -vistGood1 * config[game].pulja, null, isLast)
-          if (vistGood < 0 && vistGood2 < 0) setResult('gorka', vistId2, -vistGood2 * config[game].pulja, null, isLast)
+          // недобор вистов
+          if(vistGood < 0){
+            if (vistGood1 < 0) setResult('gorka', vistId1, Math.min(-vistGood,-vistGood1) * config[game].pulja, null, isLast)
+            if (vistGood2 < 0) setResult('gorka', vistId2, Math.min(-vistGood,-vistGood2) * config[game].pulja, null, isLast)
+          }
         }
         // роспасы
         else {
@@ -97,7 +107,7 @@ export const player = (game) => {
           do {
             id = bribe.indexOf(0, id + 1)
             if (id !== handId) {
-              setResult('pulja', id, config[game].pulja, null, isLast)
+              setResult('pulja', id, config[game].rozp, null, isLast)
             }
           } while (id > -1)
 
@@ -173,7 +183,7 @@ export const player = (game) => {
       setResult ('gorka', playId, -add, null, isLast)
       return
     }
-    let item = String(Math.min.apply(null, filter.map(i => (i.pulja[i.pulja.length - 1] || 0) + '.' + i.id)))
+    let item = String(Math.max.apply(null, filter.map(i => (i.pulja[i.pulja.length - 1] || 0) + '.' + i.id)))
     let minPulja = parseInt(item.split('.')[0])
     let closeId = parseInt(item.split('.')[1])
     let total = minPulja + add

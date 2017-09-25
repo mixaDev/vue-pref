@@ -219,7 +219,7 @@
                   :items="config.playerList"
                   v-model="game_.players"
                   label="players"
-                  :disabled="game_.change"
+                  :disabled="!!game_.change"
                 ></v-select>
               </v-flex>
             </v-layout>
